@@ -871,7 +871,7 @@ class PlatformWrapper:
             pid = self.started_agent_pids.pop()
             self.logit('ending pid: {}'.format(pid))
             try:
-                os.kill(pid, signal.SIGTERM)
+                os.kill(pid, signal.SIGKILL)
             except:
                 self.logit('could not kill: {} '.format(pid))
 
