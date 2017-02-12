@@ -42,8 +42,16 @@ def vc_vcp_platforms():
     vc_uuid = add_volttron_central(vc)
     vcp_uuid = add_volttron_central_platform(vcp)
 
-    # Sleep so we know we are registered
-    gevent.sleep(15)
+    aip = vcp._aip()
+    keystore = aip.get_agent_keystore(vcp_uuid)
+    vcp_publickey = keystore.public
+
+    agent = vc.build_agent()
+    agent.vip.rpc.call('volttron.central',
+                       'register_instance',
+                       vcp.vip_address,
+                       vcpserverkey=vcp_publickey).get(timeout=10)
+
     yield vc, vcp
 
     vc.shutdown_platform()
@@ -227,8 +235,3 @@ def test_installagent(vc_vcp_platforms):
 
     agents_after = api.list_agents(platform['uuid'])
     assert len(agents) + 1 == len(agents_after)
-
-
-
-
-
