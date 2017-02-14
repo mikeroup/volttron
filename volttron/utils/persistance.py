@@ -5,6 +5,8 @@ from threading import Thread
 from Queue import Queue
 from copy import deepcopy
 
+import fcntl
+
 _log = logging.getLogger(__name__)
 
 
@@ -60,6 +62,7 @@ class PersistentDict(dict):
         """ Write dict to disk """
         if self.flag == 'r':
             return
+
         PersistentDict._update_file(self.filename, self, self.format, self.mode)
 
     def async_sync(self):
@@ -80,12 +83,14 @@ class PersistentDict(dict):
 
         tempname = filename + '.tmp'
         fileobj = open(tempname, 'wb' if format == 'pickle' else 'w')
+        fcntl.flock(fileobj, fcntl.LOCK_EX)
         try:
             PersistentDict._dump(fileobj, contents, format)
         except Exception:
             os.remove(tempname)
             _log.error("Unable to sync to file {}".format(filename))
         finally:
+            fcntl.flock(fileobj, fcntl.LOCK_UN)
             fileobj.close()
         shutil.move(tempname, filename)  # atomic commit
         if mode is not None:
