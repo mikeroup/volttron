@@ -582,11 +582,12 @@ def start_volttron_process(opts):
         # The instance file is where we are going to record the instance and
         # its details according to
         instance_file = os.path.expanduser('~/.volttron_instances')
-        try:
-            instances = load_create_store(instance_file)
-        except ValueError:
-            os.remove(instance_file)
-            instances = load_create_store(instance_file)
+        if os.path.exists(instance_file):
+            with open(instance_file, 'r') as f:
+                instances = jsonapi.loads(f.read())
+        else:
+            instances = {}
+
         this_instance = instances.get(opts.volttron_home, {})
         this_instance['pid'] = os.getpid()
         this_instance['version'] = __version__
@@ -596,7 +597,9 @@ def start_volttron_process(opts):
         this_instance['volttron-root'] = os.path.abspath('../..')
         this_instance['start-args'] = sys.argv[1:]
         instances[opts.volttron_home] = this_instance
-        instances.async_sync()
+
+        with open(instance_file, 'w') as f:
+            f.write(jsonapi.dumps(instances))
 
         protected_topics_file = os.path.join(opts.volttron_home, 'protected_topics.json')
         _log.debug('protected topics file %s', protected_topics_file)
